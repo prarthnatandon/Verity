@@ -15,7 +15,22 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+
+// ---------- HTML page routes (must be before express.static) ----------
+// express.static would auto-serve index.html at / otherwise
+app.get('/', (req, res) => {
+  res.sendFile('landing.html', { root: './public' });
+});
+
+app.get('/app', (req, res) => {
+  res.sendFile('index.html', { root: './public' });
+});
+
+app.get('/view/:id', (req, res) => {
+  res.sendFile('index.html', { root: './public' });
+});
+
+app.use(express.static('public', { index: false }));
 
 // In-memory store for analyses when Supabase is not configured
 const memoryStore = new Map();
@@ -269,22 +284,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ---------- Shareable analysis page ----------
-// GET /view/:id — serves the app, app.js reads the ID from URL
-app.get('/view/:id', (req, res) => {
-  res.sendFile('index.html', { root: './public' });
-});
-
-// ---------- App route ----------
-// GET /app — the analysis interface
-app.get('/app', (req, res) => {
-  res.sendFile('index.html', { root: './public' });
-});
-
-// ---------- Landing page (homepage) ----------
-app.get('/', (req, res) => {
-  res.sendFile('landing.html', { root: './public' });
-});
 
 app.listen(PORT, () => {
   console.log(`\n[verity] Server running on http://localhost:${PORT}`);
