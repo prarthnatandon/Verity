@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VERITY — Competitive Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- Top bar -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <span class="wordmark">VERITY</span>
+      <span class="wordmark-tagline">Research at the speed of thought</span>
+    </div>
+    <span class="version-tag">v1.0</span>
+  </header>
+
+  <!-- App body -->
+  <div class="app-body">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+      <!-- Command bar -->
+      <div class="command-wrapper">
+        <div class="command-bar">
+          <input
+            type="text"
+            id="company-input"
+            placeholder="Enter company name"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button id="analyze-btn" class="analyze-btn">
+            <span class="btn-label">Analyze</span>
+          </button>
+        </div>
+        <div class="focus-row">
+          <select id="focus-select" class="focus-select">
+            <option value="">General analysis</option>
+            <option value="competitive_threat">Competitive threat</option>
+            <option value="partnership">Partnership evaluation</option>
+            <option value="investment">Investment research</option>
+            <option value="sales">Sales intelligence</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Research steps -->
+      <div id="steps-panel" class="steps-wrapper hidden">
+        <div class="steps-label">Research Steps</div>
+        <div id="steps-list" class="steps-list"></div>
+      </div>
+
+      <!-- Past analyses -->
+      <div class="past-wrapper">
+        <div class="past-label">Past Analyses</div>
+        <div id="history-list" class="past-list">
+          <p class="empty-history">No analyses yet</p>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+
+      <!-- Mobile command bar (visible only on small screens) -->
+      <div class="mobile-command-wrapper">
+        <div class="command-bar">
+          <input
+            type="text"
+            class="mobile-company-input"
+            placeholder="Enter company name"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button class="analyze-btn mobile-analyze-btn">
+            <span class="btn-label">Analyze</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div id="status-area" class="status-bar hidden">
+        <span class="status-dot"></span>
+        <span id="status-text">Starting research...</span>
+        <span id="elapsed-time" class="elapsed"></span>
+      </div>
+
+      <!-- Phase progress bar (5-segment, updates with each research phase) -->
+      <div id="phase-progress" class="phase-progress hidden">
+        <div class="phase-progress-inner">
+          <div class="phase-segment" data-phase="website"></div>
+          <div class="phase-segment" data-phase="news"></div>
+          <div class="phase-segment" data-phase="jobs"></div>
+          <div class="phase-segment" data-phase="sentiment"></div>
+          <div class="phase-segment" data-phase="synthesis"></div>
+        </div>
+        <span id="phase-label" class="phase-progress-label">Phase 1 / 5</span>
+      </div>
+
+      <!-- Cache badge -->
+      <div id="cache-badge" class="cache-badge hidden"></div>
+
+      <!-- Error -->
+      <div id="error-area" class="error-area hidden"></div>
+
+      <!-- Empty state -->
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon">◈</div>
+        <div class="empty-heading">What would you like to research?</div>
+        <div class="empty-chips">
+          <button class="chip-btn" data-company="Notion">Notion</button>
+          <button class="chip-btn" data-company="OpenAI">OpenAI</button>
+          <button class="chip-btn" data-company="Stripe">Stripe</button>
+          <button class="chip-btn" data-company="Linear">Linear</button>
+          <button class="chip-btn" data-company="Figma">Figma</button>
+        </div>
+        <div id="empty-tip" class="empty-tip"></div>
+      </div>
+
+      <!-- Skeleton loading state -->
+      <div id="skeleton" class="skeleton hidden">
+        <div class="skel-section" data-phase="website">
+          <div class="skel-label-bar"></div>
+          <div class="skel-line wide"></div>
+          <div class="skel-line wide"></div>
+          <div class="skel-line medium"></div>
+          <div class="skel-tags"><div class="skel-tag"></div><div class="skel-tag"></div><div class="skel-tag"></div></div>
+        </div>
+        <div class="skel-section" data-phase="news">
+          <div class="skel-label-bar"></div>
+          <div class="skel-card"></div>
+          <div class="skel-card"></div>
+        </div>
+        <div class="skel-section" data-phase="jobs">
+          <div class="skel-label-bar"></div>
+          <div class="skel-card"></div>
+        </div>
+        <div class="skel-section" data-phase="sentiment">
+          <div class="skel-label-bar"></div>
+          <div class="skel-card tall"></div>
+        </div>
+        <div class="skel-section" data-phase="synthesis">
+          <div class="skel-label-bar"></div>
+          <div class="skel-line wide"></div>
+          <div class="skel-line wide"></div>
+          <div class="skel-line medium"></div>
+        </div>
+      </div>
+
+      <!-- Stats bar -->
+      <div id="stats-bar" class="stats-bar hidden"></div>
+
+      <!-- Delta: what changed since last analysis -->
+      <div id="delta-section" class="delta-section hidden">
+        <div class="delta-heading">What changed since last analysis</div>
+        <div id="delta-content"></div>
+      </div>
+
+      <!-- Brief -->
+      <div id="brief" class="brief hidden">
+
+        <!-- Executive summary -->
+        <section class="brief-section reveal-section">
+          <div class="section-label">Executive Summary</div>
+          <p id="exec-summary" class="executive-summary"></p>
+          <div class="meta-row">
+            <span id="meta-industry" class="meta-tag"></span>
+            <span id="meta-funding" class="meta-tag"></span>
+            <span id="meta-confidence" class="meta-tag"></span>
+          </div>
+        </section>
+
+        <!-- Key signals -->
+        <section class="brief-section reveal-section">
+          <div class="section-label">Key Signals</div>
+          <div id="signals-grid" class="signals-grid"></div>
+        </section>
+
+        <!-- Positioning -->
+        <section class="brief-section reveal-section">
+          <div class="section-label">Positioning</div>
+          <div id="positioning" class="positioning-card"></div>
+        </section>
+
+        <!-- Recent moves -->
+        <section class="brief-section reveal-section">
+          <div class="section-label">Recent Moves</div>
+          <div id="recent-moves" class="moves-list"></div>
+        </section>
+
+        <!-- Hiring signals -->
+        <section class="brief-section reveal-section">
+          <div class="section-label">Hiring Signals</div>
+          <div id="hiring" class="hiring-card"></div>
+        </section>
+
+        <!-- Customer sentiment -->
+        <section class="brief-section reveal-section">
+          <div class="section-label">Customer Sentiment</div>
+          <div id="sentiment" class="sentiment-card"></div>
+        </section>
+
+        <!-- Strategic so what -->
+        <section class="brief-section reveal-section">
+          <div class="section-label">Strategic Interpretation</div>
+          <div class="so-what-block">
+            <span class="so-what-label">SO WHAT</span>
+            <p id="so-what" class="so-what-text"></p>
+          </div>
+        </section>
+
+        <!-- Sources -->
+        <section class="brief-section reveal-section">
+          <div class="section-label">Sources</div>
+          <div id="sources" class="sources-grid"></div>
+        </section>
+
+        <!-- Actions -->
+        <div class="brief-actions">
+          <button id="copy-btn" class="action-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 9.5V2.5A.5.5 0 0 1 2.5 2h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Copy brief
+          </button>
+          <button id="share-btn" class="action-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="11" cy="3" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="11" cy="11" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="3" cy="7" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 3.7L4.5 6.3M4.5 7.7l5 2.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Share link
+          </button>
+          <button id="pdf-btn" class="action-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 1H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4L9 1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 1v3h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 7.5h6M4 9.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Export PDF
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Follow-up Q&A -->
+      <div id="followup-area" class="qa-section hidden">
+        <div class="qa-heading">Follow-up Q&A</div>
+        <div class="qa-subheading">Answers drawn from retrieved research only — no hallucination</div>
+        <div class="qa-input-row">
+          <input
+            type="text"
+            id="qa-input"
+            class="qa-input"
+            placeholder="Ask anything about this company..."
+            autocomplete="off"
+          >
+          <button id="qa-btn" class="qa-ask-btn">Ask</button>
+        </div>
+        <div id="qa-history" class="qa-history"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
