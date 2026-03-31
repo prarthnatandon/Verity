@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verity — Autonomous Competitive Intelligence</title>
+  <meta name="description" content="Verity researches any company autonomously — scanning their website, news, job postings, and customer reviews — and synthesizes a structured strategic brief in under 60 seconds.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/landing.css">
+</head>
+<body>
+
+  <!-- ===== NAVIGATION ===== -->
+  <nav class="nav" id="nav">
+    <div class="nav-left">
+      <a href="/" class="nav-wordmark">VERITY</a>
+      <span class="nav-badge">Beta</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="https://github.com/prarthnatandon/Verity" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+    <a href="/app" class="nav-cta">
+      Start Researching
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-glow hero-glow-1"></div>
+    <div class="hero-glow hero-glow-2"></div>
+    <div class="hero-glow hero-glow-3"></div>
+
+    <div class="hero-content">
+      <div class="hero-eyebrow fade-up">
+        <span class="hero-eyebrow-dot"></span>
+        Powered by Claude · Anthropic
+      </div>
+
+      <h1 class="hero-headline fade-up delay-1">
+        The AI analyst that researches<br>
+        companies <span class="gradient-text">so you don't have to.</span>
+      </h1>
+
+      <p class="hero-sub fade-up delay-2">
+        Verity autonomously searches the live web, reads job postings, scans customer reviews, and synthesizes a structured competitive brief — complete with confidence scoring and follow-up Q&A — in under 60 seconds.
+      </p>
+
+      <div class="hero-ctas fade-up delay-3">
+        <a href="/app" class="btn-primary">
+          Analyze a company
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#how-it-works" class="btn-secondary">
+          See how it works
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+
+      <div class="hero-stats fade-up delay-4">
+        <div class="hero-stat">
+          <span class="hero-stat-value">12</span>
+          <span class="hero-stat-label">tool calls / analysis</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">Live</span>
+          <span class="hero-stat-label">web research</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">Zero</span>
+          <span class="hero-stat-label">hallucination</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MOCK BRIEF PREVIEW ===== -->
+  <div class="preview-section fade-up">
+    <p class="preview-label">Sample brief — Notion Inc.</p>
+    <div class="preview-window">
+      <div class="preview-titlebar">
+        <div class="preview-dot"></div>
+        <div class="preview-dot"></div>
+        <div class="preview-dot"></div>
+        <span class="preview-url">verity.app · Notion · Strategic Brief</span>
+      </div>
+      <div class="preview-body">
+        <div class="preview-exec">
+          Notion is executing a deliberate upmarket push — abandoning its prosumer roots to compete directly with enterprise knowledge management incumbents. The $10B valuation now demands enterprise ARR, and every recent product move (AI integration, enterprise search, admin controls) signals that the PLG flywheel is being retrofitted for top-down sales.
+        </div>
+
+        <div class="preview-signals">
+          <div class="preview-signal move">
+            <span class="preview-signal-text">Launched Notion AI across all plans with dedicated AI add-on pricing, signaling a shift from feature parity to AI-first product positioning</span>
+            <span class="preview-badge move">move</span>
+          </div>
+          <div class="preview-signal risk">
+            <span class="preview-signal-text">Customer reviews cite increasing complexity and feature bloat — "it does everything but nothing well" — a recurring complaint across G2 and Reddit</span>
+            <span class="preview-badge risk">risk</span>
+          </div>
+          <div class="preview-signal opp">
+            <span class="preview-signal-text">30+ enterprise sales roles open across EMEA and APAC; first significant investment in a direct enterprise sales motion outside the US</span>
+            <span class="preview-badge opp">opportunity</span>
+          </div>
+        </div>
+
+        <div class="preview-stats">
+          <span class="preview-stat-pill">
+            <span class="preview-stat-dot" style="background:#7c3aed"></span>
+            48s
+          </span>
+          <span class="preview-stat-pill">
+            <span class="preview-stat-dot" style="background:#3b82f6"></span>
+            11 tool calls
+          </span>
+          <span class="preview-stat-pill">
+            <span class="preview-stat-dot" style="background:#10b981"></span>
+            14 sources
+          </span>
+          <span class="preview-stat-pill">
+            <span class="preview-stat-dot" style="background:#a78bfa"></span>
+            High confidence
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <div class="features-bg" id="how-it-works">
+    <div class="section">
+      <div class="section-eyebrow fade-up">Research agenda</div>
+      <h2 class="section-title fade-up delay-1">Five phases. One brief.</h2>
+      <p class="section-sub fade-up delay-2">Verity follows a structured research agenda — not a keyword search. Every analysis runs the full five-phase loop.</p>
+
+      <div class="steps-grid">
+        <div class="step-card fade-up">
+          <div class="step-num">1</div>
+          <span class="step-icon">🌐</span>
+          <div class="step-title">Website Scan</div>
+          <div class="step-desc">Positioning language, product claims, and ICP signals direct from the source</div>
+        </div>
+        <div class="step-card fade-up delay-1">
+          <div class="step-num">2</div>
+          <span class="step-icon">📰</span>
+          <div class="step-title">News & Activity</div>
+          <div class="step-desc">Announcements, funding rounds, launches, and strategic moves from the last 90 days</div>
+        </div>
+        <div class="step-card fade-up delay-2">
+          <div class="step-num">3</div>
+          <span class="step-icon">💼</span>
+          <div class="step-title">Job Postings</div>
+          <div class="step-desc">Hiring patterns reveal strategic priorities before they're publicly announced</div>
+        </div>
+        <div class="step-card fade-up delay-3">
+          <div class="step-num">4</div>
+          <span class="step-icon">💬</span>
+          <div class="step-title">Customer Sentiment</div>
+          <div class="step-desc">Reviews, Reddit, and community signals — what real customers love and complain about</div>
+        </div>
+        <div class="step-card fade-up delay-4">
+          <div class="step-num">5</div>
+          <span class="step-icon">✦</span>
+          <div class="step-title">Synthesis</div>
+          <div class="step-desc">Everything distilled into a structured brief with signal types and confidence scoring</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FEATURES ===== -->
+  <div class="section" id="features">
+    <div class="section-eyebrow fade-up">Why Verity</div>
+    <h2 class="section-title fade-up delay-1">Research that's actually trustworthy.</h2>
+    <p class="section-sub fade-up delay-2">Most AI research tools make things up. Verity is built around a single constraint: every claim must be traceable to something retrieved.</p>
+
+    <div class="features-grid">
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap">🔍</div>
+        <div class="feature-title">Live Web Research</div>
+        <div class="feature-desc">Verity searches the real web — not a static database. Every brief reflects what's true today, not six months ago. Sources are cited for every claim.</div>
+      </div>
+      <div class="feature-card fade-up delay-1">
+        <div class="feature-icon-wrap">📊</div>
+        <div class="feature-title">Confidence Scoring</div>
+        <div class="feature-desc">Every signal is rated high, medium, or low — with a plain-English explanation of why. No black boxes. No inflated certainty on weak data.</div>
+      </div>
+      <div class="feature-card fade-up delay-2">
+        <div class="feature-icon-wrap">💬</div>
+        <div class="feature-title">Grounded Q&A</div>
+        <div class="feature-desc">Ask any follow-up question. Answers are grounded exclusively in the research retrieved — if the information wasn't found, Verity says so.</div>
+      </div>
+      <div class="feature-card fade-up delay-3">
+        <div class="feature-icon-wrap">🎯</div>
+        <div class="feature-title">Research Focus Modes</div>
+        <div class="feature-desc">Tailor any brief for a specific purpose — competitive threat assessment, partnership evaluation, investment research, or sales intelligence.</div>
+      </div>
+      <div class="feature-card fade-up delay-4">
+        <div class="feature-icon-wrap">⚡</div>
+        <div class="feature-title">Real-Time Streaming</div>
+        <div class="feature-desc">Watch the agent work — live. Tool calls, web searches, reasoning, and results stream to the screen as they happen. No black-box waiting.</div>
+      </div>
+      <div class="feature-card fade-up delay-5">
+        <div class="feature-icon-wrap">🔗</div>
+        <div class="feature-title">Shareable Briefs</div>
+        <div class="feature-desc">Every analysis gets a permanent URL. Share a brief with a colleague, export it as a PDF, or come back to it anytime — all analyses are cached.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TECH STRIP ===== -->
+  <div class="tech-strip">
+    <p class="tech-strip-title">Under the hood</p>
+    <div class="tech-badges">
+      <span class="tech-badge"><span class="tech-badge-dot"></span>Claude ReAct agent loop</span>
+      <span class="tech-badge"><span class="tech-badge-dot"></span>web_search_20250305 + web_fetch_20250910</span>
+      <span class="tech-badge"><span class="tech-badge-dot"></span>Server-Sent Events (SSE)</span>
+      <span class="tech-badge"><span class="tech-badge-dot"></span>anthropic.messages.stream()</span>
+      <span class="tech-badge"><span class="tech-badge-dot"></span>Token-level cost tracking</span>
+      <span class="tech-badge"><span class="tech-badge-dot"></span>Supabase + 7-day cache TTL</span>
+      <span class="tech-badge"><span class="tech-badge-dot"></span>Exponential backoff retry</span>
+      <span class="tech-badge"><span class="tech-badge-dot"></span>Analysis delta diffing</span>
+    </div>
+  </div>
+
+  <!-- ===== FINAL CTA ===== -->
+  <div class="cta-section fade-up">
+    <div class="section-eyebrow" style="justify-content:center; margin-bottom:16px;">Ready to research</div>
+    <h2 class="section-title">Try it on any company.</h2>
+    <p>No sign-up required. Enter a company name and Verity's agent starts working immediately. Results in under 60 seconds.</p>
+    <a href="/app" class="btn-primary" style="margin: 0 auto; display: inline-flex;">
+      Start Researching
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="footer-left">
+      <span class="footer-wordmark">VERITY</span>
+      <span class="footer-tagline">Autonomous Competitive Intelligence</span>
+    </div>
+    <ul class="footer-links">
+      <li><a href="/app">App</a></li>
+      <li><a href="https://github.com/prarthnatandon/Verity" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="https://anthropic.com" target="_blank" rel="noopener">Built with Claude</a></li>
+    </ul>
+    <span class="footer-copy">© 2025 Verity</span>
+  </footer>
+
+  <script>
+    // Sticky nav on scroll
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 20);
+    });
+
+    // Intersection Observer for fade-up animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>

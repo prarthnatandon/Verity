@@ -270,14 +270,20 @@ app.get('/api/health', (req, res) => {
 });
 
 // ---------- Shareable analysis page ----------
-// GET /view/:id — serves the same frontend, app.js reads the ID from URL
+// GET /view/:id — serves the app, app.js reads the ID from URL
 app.get('/view/:id', (req, res) => {
   res.sendFile('index.html', { root: './public' });
 });
 
-// ---------- Serve frontend ----------
-app.get('/', (req, res) => {
+// ---------- App route ----------
+// GET /app — the analysis interface
+app.get('/app', (req, res) => {
   res.sendFile('index.html', { root: './public' });
+});
+
+// ---------- Landing page (homepage) ----------
+app.get('/', (req, res) => {
+  res.sendFile('landing.html', { root: './public' });
 });
 
 app.listen(PORT, () => {
