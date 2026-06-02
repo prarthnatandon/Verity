@@ -192,9 +192,10 @@ function showStats(stats, analysis) {
     const totalTokens = (stats.inputTokens || 0) + (stats.outputTokens || 0);
     const tokenDisplay = totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(1)}k` : `${totalTokens}`;
     const costDisplay = stats.estimatedCostUsd !== undefined ? ` · ~$${stats.estimatedCostUsd}` : '';
+    const cacheLabel = stats.cacheReadTokens > 0 ? ` · ⚡cached` : '';
     tokenPart = `
       <span class="stat-separator">/</span>
-      <div class="stat-item"><span class="stat-dot amber"></span> <span class="count-up" data-target="${totalTokens}" data-suffix=" tokens${costDisplay}">${tokenDisplay} tokens${costDisplay}</span></div>
+      <div class="stat-item"><span class="stat-dot amber"></span> <span class="count-up" data-target="${totalTokens}" data-suffix=" tokens${costDisplay}${cacheLabel}">${tokenDisplay} tokens${costDisplay}${cacheLabel}</span></div>
     `;
   }
 
@@ -319,91 +320,118 @@ function startAnalysis(company) {
 
   statusText.textContent = 'Starting research...';
 
-  const url = `/api/analyze/stream?company=${encodeURIComponent(company)}${focus ? `&focus=${encodeURIComponent(focus)}` : ''}`;
-  const eventSource = new EventSource(url);
+  // Build URL (userContext and deep mode will be appended by startAnalysis caller)
+  const userCtx = document.getElementById('user-context')?.value?.trim() || '';
+  const deepMode = document.getElementById('deep-mode')?.checked || false;
+  const url = `/api/analyze/stream?company=${encodeURIComponent(company)}`
+    + (focus ? `&focus=${encodeURIComponent(focus)}` : '')
+    + (userCtx ? `&context=${encodeURIComponent(userCtx)}` : '')
+    + (deepMode ? `&deep=true` : '');
 
-  eventSource.onmessage = (e) => {
-    const event = JSON.parse(e.data);
-
-    switch (event.type) {
-      case 'status':
-        statusText.textContent = event.message;
-        break;
-
-      case 'cache_hit':
-        statusText.textContent = 'Retrieved from cache';
-        hideSkeleton();
-        hidePhaseProgress();
-        break;
-
-      case 'step':
-        handleStep(event);
-        break;
-
-      case 'complete':
-        stopTimer();
-        hideSkeleton();
-        hidePhaseProgress();
-        statusArea.classList.add('hidden');
-        eventSource.close();
-        setButtonIdle();
-        isAnalyzing = false;
-
-        currentAnalysis = event.analysis;
-        currentAnalysisId = event.analysisId;
-
-        // Mark all phases done with cascade animation
-        PHASES.forEach((p, i) => {
-          setTimeout(() => {
-            phaseStates[p.id] = 'done';
-            renderSteps();
-          }, i * 60);
-        });
-
-        showStats(event.stats, event.analysis);
-
-        if (event.age_days !== undefined) showCacheBadge(event.age_days);
-        if (event.delta) renderDelta(event.delta);
-
-        renderBrief(event.analysis);
-        revealBriefSections();
-        loadHistory();
-        break;
-
-      case 'error':
-        stopTimer();
-        hideSkeleton();
-        hidePhaseProgress();
+  // Pre-flight check: EventSource can't surface a 429 JSON body — do a HEAD first
+  // so we can show a friendly rate-limit message instead of silently failing.
+  (async () => {
+    try {
+      const check = await fetch(url, { method: 'HEAD' });
+      if (check.status === 429) {
+        stopTimer(); hideSkeleton(); hidePhaseProgress();
         statusArea.classList.add('hidden');
         errorArea.classList.remove('hidden');
-        errorArea.textContent = `Analysis failed: ${event.message}`;
-        eventSource.close();
-        setButtonIdle();
-        isAnalyzing = false;
-        break;
-    }
-  };
+        errorArea.textContent = 'Analysis limit reached — you can run 5 analyses per hour. Please try again later.';
+        setButtonIdle(); isAnalyzing = false;
+        return;
+      }
+    } catch { /* network error — let EventSource handle it */ }
 
-  eventSource.onerror = () => {
-    stopTimer();
-    hideSkeleton();
-    hidePhaseProgress();
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = _sseOnMessage(eventSource);
+    eventSource.onerror = _sseOnError(eventSource);
+  })();
+}
+
+// Extracted SSE handlers so the pre-flight async wrapper can reference them
+function _sseOnMessage(eventSource) {
+  return (e) => {
+    const event = JSON.parse(e.data);
+    handleSseEvent(event, eventSource);
+  };
+}
+function _sseOnError(eventSource) {
+  return () => {
+    stopTimer(); hideSkeleton(); hidePhaseProgress();
     statusArea.classList.add('hidden');
     errorArea.classList.remove('hidden');
     errorArea.textContent = 'Connection lost. Please try again.';
-    eventSource.close();
-    setButtonIdle();
-    isAnalyzing = false;
+    eventSource.close(); setButtonIdle(); isAnalyzing = false;
   };
+}
+
+// All SSE event logic in one place
+function handleSseEvent(event, eventSource) {
+  switch (event.type) {
+    case 'status':
+      statusText.textContent = event.message;
+      break;
+
+    case 'cache_hit':
+      statusText.textContent = 'Retrieved from cache';
+      hideSkeleton();
+      hidePhaseProgress();
+      break;
+
+    case 'step':
+      handleStep(event);
+      break;
+
+    case 'complete':
+      stopTimer();
+      hideSkeleton();
+      hidePhaseProgress();
+      statusArea.classList.add('hidden');
+      eventSource.close();
+      setButtonIdle();
+      isAnalyzing = false;
+
+      currentAnalysis = event.analysis;
+      currentAnalysisId = event.analysisId;
+
+      PHASES.forEach((p, i) => {
+        setTimeout(() => { phaseStates[p.id] = 'done'; renderSteps(); }, i * 60);
+      });
+
+      showStats(event.stats, event.analysis);
+      if (event.age_days !== undefined) showCacheBadge(event.age_days);
+      if (event.delta) renderDelta(event.delta);
+
+      renderBrief(event.analysis);
+      revealBriefSections();
+      loadHistory();
+      break;
+
+    case 'error':
+      stopTimer();
+      hideSkeleton();
+      hidePhaseProgress();
+      statusArea.classList.add('hidden');
+      errorArea.classList.remove('hidden');
+      errorArea.textContent = `Analysis failed: ${event.message}`;
+      eventSource.close();
+      setButtonIdle();
+      isAnalyzing = false;
+      break;
+  }
 }
 
 function handleStep(step) {
   if (step.type === 'reasoning') {
+    const SHORT = 200;
+    const isLong = step.text.length > SHORT;
+    const shortText = isLong ? step.text.substring(0, SHORT) : step.text;
     const reasoningEl = document.createElement('div');
     reasoningEl.className = 'step-reasoning';
-    const shortText = step.text.substring(0, 120) + (step.text.length > 120 ? '…' : '');
-    reasoningEl.textContent = shortText;
-    reasoningEl.title = step.text; // full text on hover
+    reasoningEl.innerHTML = `<span class="reasoning-text">${escapeHtml(shortText)}${isLong ? '…' : ''}</span>`
+      + (isLong ? `<button class="reasoning-expand" data-full="${escapeHtml(step.text)}">show more</button>` : '');
     stepsList.appendChild(reasoningEl);
     stepsPanel.scrollTop = stepsPanel.scrollHeight;
     return;
@@ -533,6 +561,12 @@ function renderBrief(analysis) {
   brief.classList.remove('hidden');
   followupArea.classList.remove('hidden');
 
+  // Reset sources toggle to closed
+  const sourcesToggle = document.getElementById('sources-toggle');
+  const sourcesPanel  = document.getElementById('sources');
+  if (sourcesToggle) sourcesToggle.setAttribute('aria-expanded', 'false');
+  if (sourcesPanel)  sourcesPanel.className = 'sources-grid sources-collapsed';
+
   document.getElementById('exec-summary').textContent = analysis.executive_summary || '';
   document.getElementById('meta-industry').textContent = analysis.industry || '';
   document.getElementById('meta-funding').textContent = analysis.funding_stage || '';
@@ -541,14 +575,63 @@ function renderBrief(analysis) {
   confEl.textContent = `Confidence: ${analysis.overall_confidence || 'unknown'}`;
   confEl.title = analysis.overall_confidence_reason || '';
 
-  // Key signals — with data-type for colored left border
+  // Company favicon
+  const faviconEl = document.getElementById('company-favicon');
+  if (faviconEl) {
+    if (analysis.website) {
+      try {
+        const domain = new URL(analysis.website).hostname;
+        faviconEl.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+        faviconEl.classList.remove('hidden');
+      } catch { faviconEl.classList.add('hidden'); }
+    } else {
+      faviconEl.classList.add('hidden');
+    }
+  }
+
+  const SIGNAL_ICONS = { move: '↗', risk: '⚠', opportunity: '✦', threat: '⚡' };
+
+  // Key signals — with data-type for colored left border + tint + ask button
   const signalsGrid = document.getElementById('signals-grid');
+  // Signal filter bar — injected before the grid
+  const existingFilterBar = signalsGrid.parentNode.querySelector('.signal-filter-bar');
+  if (existingFilterBar) existingFilterBar.remove();
+  const filterBar = document.createElement('div');
+  filterBar.className = 'signal-filter-bar';
+  filterBar.innerHTML = `
+    <button class="signal-filter active" data-filter="all">All</button>
+    <button class="signal-filter" data-filter="threat">⚡ Threats</button>
+    <button class="signal-filter" data-filter="risk">⚠ Risks</button>
+    <button class="signal-filter" data-filter="opportunity">✦ Opportunities</button>
+    <button class="signal-filter" data-filter="move">↗ Moves</button>
+    <button class="signal-filter conf-filter">High confidence only</button>
+  `;
+  signalsGrid.parentNode.insertBefore(filterBar, signalsGrid);
+
+  filterBar.addEventListener('click', e => {
+    const btn = e.target.closest('.signal-filter');
+    if (!btn) return;
+    if (btn.classList.contains('conf-filter')) {
+      btn.classList.toggle('active');
+    } else {
+      filterBar.querySelectorAll('.signal-filter:not(.conf-filter)').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    const activeType = filterBar.querySelector('.signal-filter:not(.conf-filter).active')?.dataset.filter || 'all';
+    const highOnly   = filterBar.querySelector('.conf-filter')?.classList.contains('active');
+    document.querySelectorAll('.signal-card').forEach(card => {
+      const typeMatch = activeType === 'all' || card.dataset.type === activeType;
+      const confMatch = !highOnly || card.classList.contains('confidence-high');
+      card.style.display = (typeMatch && confMatch) ? '' : 'none';
+    });
+  });
+
   signalsGrid.innerHTML = (analysis.key_signals || []).map(sig => `
-    <div class="signal-card" data-type="${sig.type}">
+    <div class="signal-card${sig.confidence === 'high' ? ' confidence-high' : ''}" data-type="${sig.type}">
       <div class="signal-top">
         <div class="signal-text">${escapeHtml(sig.signal)}</div>
         <div class="signal-badges">
-          <span class="signal-type ${sig.type}">${sig.type}</span>
+          <span class="signal-type ${sig.type}">${SIGNAL_ICONS[sig.type] || ''} ${sig.type}</span>
           <span class="confidence-badge ${sig.confidence}">
             <span class="conf-dot"></span>
             ${capitalize(sig.confidence)}
@@ -557,6 +640,7 @@ function renderBrief(analysis) {
       </div>
       <div class="signal-reason">${escapeHtml(sig.confidence_reason || '')}</div>
       ${sig.source ? `<a href="${escapeHtml(sig.source)}" target="_blank" rel="noopener" class="signal-source">${truncateUrl(sig.source)}</a>` : ''}
+      <button class="signal-ask-btn" data-question="Tell me more about this signal: ${escapeHtml(sig.signal)}">→ Ask about this</button>
     </div>
   `).join('');
 
@@ -602,9 +686,18 @@ function renderBrief(analysis) {
     <div class="hiring-interp">${escapeHtml(hiring.interpretation || 'No hiring data available')}</div>
   `;
 
-  // Sentiment
+  // Sentiment — with score bar
   const sent = analysis.customer_sentiment || {};
+  const loveCount = (sent.what_they_love || []).length;
+  const painCount = (sent.what_they_complain_about || []).length;
+  const total = loveCount + painCount;
+  const pct = total > 0 ? Math.round((loveCount / total) * 100) : 50;
   document.getElementById('sentiment').innerHTML = `
+    <div class="sentiment-score-row">
+      <span class="sentiment-score-label">Sentiment</span>
+      <div class="sentiment-score-bar"><div class="sentiment-score-fill" style="width:0%"></div></div>
+      <span class="sentiment-score-pct">${pct}% positive</span>
+    </div>
     <div class="sentiment-grid">
       <div>
         <div class="sentiment-col-label love">What they love</div>
@@ -621,10 +714,22 @@ function renderBrief(analysis) {
     </div>
     <div class="sentiment-interpretation">${escapeHtml(sent.net_interpretation || 'N/A')}</div>
   `;
+  // Animate the bar after DOM insert
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const fill = document.querySelector('.sentiment-score-fill');
+      if (fill) fill.style.width = `${pct}%`;
+    });
+  });
 
   document.getElementById('so-what').textContent = analysis.strategic_so_what || '';
+  const deepBadge = document.getElementById('deep-badge');
+  if (deepBadge) {
+    if (analysis._deep_synthesis) deepBadge.classList.remove('hidden');
+    else deepBadge.classList.add('hidden');
+  }
 
-  // Sources
+  // Sources — populate but keep collapsed; toggle button handles open/close
   document.getElementById('sources').innerHTML = (analysis.sources_used || []).map(s => `
     <div class="source-item">
       <span class="source-type">${s.type || 'web'}</span>
@@ -723,29 +828,71 @@ async function loadHistory() {
 
     if (data.length === 0) {
       historyList.innerHTML = '<p class="empty-history">No analyses yet</p>';
+      wireHistorySearch([]);
       return;
     }
 
-    historyList.innerHTML = data.map(item => {
+    // Group by time bucket
+    const groups = { today: [], week: [], older: [] };
+    data.forEach(item => {
       const age = daysSince(item.created_at);
-      const ageLabel = age === 0 ? 'today' : age === 1 ? '1d ago' : `${age}d ago`;
-      const isStale = age >= 7;
-      const conf = item.overall_confidence || 'unknown';
-      return `
-        <div class="history-item" data-id="${item.id}" data-name="${escapeHtml(item.company_name)}">
-          <span class="history-name">${escapeHtml(item.company_name)}</span>
-          <span class="history-right">
-            <span class="history-conf-dot ${conf}"></span>
-            <span class="history-age ${isStale ? 'history-stale' : 'history-fresh'}">${ageLabel}${isStale ? ' ↻' : ''}</span>
-          </span>
-        </div>
-      `;
-    }).join('');
+      if (age === 0) groups.today.push(item);
+      else if (age <= 7) groups.week.push(item);
+      else groups.older.push(item);
+    });
+
+    function renderGroup(label, items) {
+      if (items.length === 0) return '';
+      const rows = items.map(item => {
+        const age = daysSince(item.created_at);
+        const ageLabel = age === 0 ? 'today' : age === 1 ? '1d ago' : `${age}d ago`;
+        const isStale = age >= 7;
+        const conf = item.overall_confidence || 'unknown';
+        return `
+          <div class="history-item" data-id="${item.id}" data-name="${escapeHtml(item.company_name)}" data-conf="${conf}">
+            <span class="history-name">${escapeHtml(item.company_name)}</span>
+            <span class="history-right">
+              <span class="history-age ${isStale ? 'history-stale' : 'history-fresh'}">${ageLabel}${isStale ? ' ↻' : ''}</span>
+            </span>
+          </div>`;
+      }).join('');
+      return `<div class="history-group-label">${label}</div>${rows}`;
+    }
+
+    historyList.innerHTML = [
+      renderGroup('Today', groups.today),
+      renderGroup('This week', groups.week),
+      renderGroup('Older', groups.older)
+    ].join('');
 
     document.querySelectorAll('.history-item').forEach(el => {
       el.addEventListener('click', () => loadAnalysisById(el.dataset.id, el.dataset.name));
     });
+
+    wireHistorySearch(data);
   } catch { /* silent */ }
+}
+
+function wireHistorySearch(data) {
+  const searchEl = document.getElementById('history-search');
+  if (!searchEl) return;
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.toLowerCase().trim();
+    document.querySelectorAll('.history-item').forEach(el => {
+      const match = !q || el.dataset.name.toLowerCase().includes(q);
+      el.style.display = match ? '' : 'none';
+    });
+    document.querySelectorAll('.history-group-label').forEach(label => {
+      const group = label.nextElementSibling;
+      let hasVisible = false;
+      let el = label.nextElementSibling;
+      while (el && !el.classList.contains('history-group-label')) {
+        if (el.style.display !== 'none') hasVisible = true;
+        el = el.nextElementSibling;
+      }
+      label.style.display = hasVisible ? '' : 'none';
+    });
+  });
 }
 
 // ---- Load analysis by ID ----
@@ -785,6 +932,37 @@ async function loadAnalysisById(id, name) {
     errorArea.classList.remove('hidden');
     errorArea.textContent = 'Failed to load analysis.';
   }
+}
+
+// ---- Copy for Slack ----
+function copyForSlack() {
+  if (!currentAnalysis) return;
+  const a = currentAnalysis;
+  const conf = (a.overall_confidence || 'unknown').toUpperCase();
+  const ICONS  = { move: '↗', risk: '⚠', opportunity: '✦', threat: '⚡' };
+  const CIRCLE = { HIGH: ':large_green_circle:', MEDIUM: ':large_yellow_circle:', LOW: ':white_circle:' };
+
+  const signals = (a.key_signals || [])
+    .map(s => `${ICONS[s.type] || '•'} *${(s.type || '').toUpperCase()}* ${CIRCLE[s.confidence?.toUpperCase()] || ''} — ${s.signal}`)
+    .join('\n');
+
+  const lines = [
+    `*VERITY: ${a.company}* | ${a.analysis_date} | ${CIRCLE[conf] || ''} ${conf} confidence`,
+    ``,
+    `*Strategic Interpretation*`,
+    `> ${a.strategic_so_what || ''}`,
+    ``,
+    `*Key Signals*`,
+    signals || '_No signals recorded_',
+    ``,
+    `*Hiring:* ${(a.hiring_signals?.growth_areas || []).join(', ') || 'N/A'}`,
+    `*Sentiment:* ${a.customer_sentiment?.net_interpretation || 'N/A'}`,
+    ``,
+    `_Analyzed by Verity · ${window.location.origin}/view/${currentAnalysisId}_`
+  ];
+
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(() => showToast('Slack-formatted brief copied', '#'));
 }
 
 // ---- Copy brief ----
@@ -880,8 +1058,48 @@ qaBtn.addEventListener('click', () => askFollowUp(qaInput.value));
 qaInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') askFollowUp(qaInput.value); });
 
 copyBtn.addEventListener('click', copyBrief);
+document.getElementById('slack-btn').addEventListener('click', copyForSlack);
 shareBtn.addEventListener('click', copyShareLink);
 pdfBtn.addEventListener('click', exportPdf);
+
+// Context textarea toggle
+const contextToggle = document.getElementById('context-toggle');
+const userContextEl = document.getElementById('user-context');
+if (contextToggle && userContextEl) {
+  contextToggle.addEventListener('click', () => {
+    const open = userContextEl.classList.toggle('visible');
+    contextToggle.textContent = open ? '− Remove context' : '+ Add your context';
+    if (open) userContextEl.focus();
+  });
+}
+
+// Reasoning "show more" expand — event delegation on the steps list
+stepsList.addEventListener('click', e => {
+  const btn = e.target.closest('.reasoning-expand');
+  if (!btn) return;
+  const parent = btn.closest('.step-reasoning');
+  if (!parent) return;
+  parent.querySelector('.reasoning-text').textContent = btn.dataset.full;
+  btn.remove();
+});
+
+// Sources collapsible toggle
+document.getElementById('sources-toggle').addEventListener('click', () => {
+  const btn = document.getElementById('sources-toggle');
+  const panel = document.getElementById('sources');
+  const expanded = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', String(!expanded));
+  panel.className = expanded ? 'sources-grid sources-collapsed' : 'sources-grid sources-expanded';
+});
+
+// Signal "→ Ask about this" button — event delegation on grid
+document.getElementById('signals-grid').addEventListener('click', (e) => {
+  const askBtn = e.target.closest('.signal-ask-btn');
+  if (!askBtn) return;
+  qaInput.value = askBtn.dataset.question;
+  followupArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => qaInput.focus(), 350);
+});
 
 // ---- Example company chips ----
 document.querySelectorAll('.chip-btn').forEach(btn => {

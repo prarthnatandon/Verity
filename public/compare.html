@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VERITY — Compare Companies</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* Compare-specific layout */
+    body { overflow: auto; }
+
+    .compare-page { max-width: 1200px; margin: 0 auto; padding: 40px 32px; }
+
+    .compare-header { margin-bottom: 36px; }
+    .compare-header a { font-size: 12px; color: #9ca3af; text-decoration: none; font-family: 'Geist Mono', monospace; }
+    .compare-header a:hover { color: #7c3aed; }
+    .compare-title { font-family: 'Geist Mono', monospace; font-size: 22px; font-weight: 600; letter-spacing: 0.12em; color: #111; margin-top: 8px; }
+    .compare-sub { font-size: 13px; color: #9ca3af; margin-top: 4px; }
+
+    .compare-inputs { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 24px; }
+    .company-input-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .company-input-label { font-size: 10px; font-family: 'Geist Mono', monospace; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; }
+    .company-input-field {
+      border: 1px solid #e5e7eb; border-radius: 8px; padding: 9px 14px;
+      font-family: 'Geist', sans-serif; font-size: 13px; color: #111;
+      outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 180px;
+    }
+    .company-input-field:focus { border-color: #a78bfa; box-shadow: 0 0 0 3px rgba(167,139,250,0.12); }
+    .company-input-field::placeholder { color: #d1d5db; }
+
+    .compare-btn {
+      background: #7c3aed; color: #fff; border: none; border-radius: 8px;
+      padding: 10px 20px; font-family: 'Geist', sans-serif; font-size: 13px;
+      font-weight: 500; cursor: pointer; transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+      display: flex; align-items: center; gap: 6px; height: 40px;
+    }
+    .compare-btn:hover:not(:disabled) { background: #6d28d9; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(124,58,237,0.3); }
+    .compare-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .compare-focus { height: 40px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0 12px; font-family: 'Geist', sans-serif; font-size: 12px; color: #6b7280; outline: none; }
+
+    /* Status area */
+    .compare-status { display: none; align-items: center; gap: 10px; font-size: 13px; color: #6b7280; margin-bottom: 24px; background: #fafafa; border: 1px solid #f0f0f0; border-radius: 8px; padding: 10px 14px; }
+    .compare-status.visible { display: flex; }
+
+    /* Results: column grid */
+    .compare-columns { display: grid; gap: 20px; margin-bottom: 40px; }
+    .compare-columns.cols-2 { grid-template-columns: 1fr 1fr; }
+    .compare-columns.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+    .company-col {
+      border: 1px solid #f0f0f0; border-radius: 12px; padding: 24px;
+      background: #fafafa; display: flex; flex-direction: column; gap: 16px;
+    }
+
+    .company-col-name {
+      font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 600;
+      color: #7c3aed; letter-spacing: 0.06em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .company-col-favicon { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #f0f0f0; object-fit: contain; }
+
+    .col-section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca3af; font-family: 'Geist Mono', monospace; margin-bottom: 6px; }
+
+    .col-exec { font-size: 13px; color: #374151; line-height: 1.65; border-left: 2px solid #7c3aed; padding-left: 12px; background: linear-gradient(to right, rgba(124,58,237,0.04), transparent 80%); border-radius: 0 4px 4px 0; }
+
+    .col-so-what { font-size: 13px; color: #1f2937; line-height: 1.7; background: linear-gradient(135deg, #faf5ff, #f5f3ff); border: 1px solid #ede9fe; border-left: 2px solid #7c3aed; border-radius: 0 8px 8px 0; padding: 14px 16px; }
+
+    .col-signals { display: flex; flex-direction: column; gap: 8px; }
+    .col-signal { font-size: 12px; color: #374151; padding: 8px 12px; border-radius: 8px; background: #fff; border: 1px solid #f3f4f6; border-left: 3px solid #e5e7eb; line-height: 1.4; }
+    .col-signal[data-type="move"]        { border-left-color: #7c3aed; }
+    .col-signal[data-type="threat"]      { border-left-color: #dc2626; }
+    .col-signal[data-type="risk"]        { border-left-color: #f59e0b; }
+    .col-signal[data-type="opportunity"] { border-left-color: #16a34a; }
+
+    .col-signal-type { font-family: 'Geist Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; margin-right: 4px; }
+
+    .col-loading {
+      display: flex; align-items: center; gap: 8px; color: #9ca3af;
+      font-family: 'Geist Mono', monospace; font-size: 12px; padding: 20px 0;
+    }
+
+    /* Comparison matrix */
+    .matrix-section { margin-top: 20px; }
+    .matrix-heading { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca3af; font-family: 'Geist Mono', monospace; margin-bottom: 16px; display: flex; align-items: center; gap: 7px; }
+    .matrix-heading::before { content: ''; display: inline-block; width: 4px; height: 4px; border-radius: 1px; background: #7c3aed; flex-shrink: 0; }
+
+    .matrix-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .matrix-stat { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 10px; padding: 14px 16px; }
+    .matrix-stat-label { font-size: 10px; font-family: 'Geist Mono', monospace; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .matrix-stat-value { font-size: 13px; color: #1f2937; line-height: 1.5; }
+
+    .matrix-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .matrix-table th { text-align: left; font-family: 'Geist Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9ca3af; padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    .matrix-table td { padding: 10px 12px; border-bottom: 1px solid #f9fafb; vertical-align: top; line-height: 1.5; color: #374151; }
+    .matrix-table tr:hover td { background: #fafafa; }
+    .matrix-table td:first-child { font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 600; color: #6b7280; white-space: nowrap; }
+
+    .momentum-high   { color: #15803d; font-weight: 600; }
+    .momentum-medium { color: #b45309; font-weight: 600; }
+    .momentum-low    { color: #6b7280; }
+
+    @media (max-width: 768px) {
+      .compare-columns.cols-2,
+      .compare-columns.cols-3 { grid-template-columns: 1fr; }
+      .matrix-summary { grid-template-columns: 1fr; }
+      .compare-inputs { flex-direction: column; align-items: stretch; }
+      .company-input-field { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <a href="/" class="wordmark" style="text-decoration:none;color:inherit;">VERITY</a>
+      <span class="wordmark-tagline">Company comparison</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <a href="/app" style="font-size:12px;color:#9ca3af;text-decoration:none;font-family:'Geist',sans-serif;transition:color 0.15s;" onmouseover="this.style.color='#7c3aed'" onmouseout="this.style.color='#9ca3af'">← Single analysis</a>
+      <span class="version-tag">v1.0</span>
+    </div>
+  </header>
+
+  <div class="compare-page">
+    <div class="compare-header">
+      <div class="compare-title">COMPARE</div>
+      <div class="compare-sub">Research two or three companies in parallel and see how they stack up.</div>
+    </div>
+
+    <div class="compare-inputs">
+      <div class="company-input-wrap">
+        <div class="company-input-label">Company 1</div>
+        <input type="text" class="company-input-field" id="co1" placeholder="e.g. Notion" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="company-input-wrap">
+        <div class="company-input-label">Company 2</div>
+        <input type="text" class="company-input-field" id="co2" placeholder="e.g. Linear" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="company-input-wrap">
+        <div class="company-input-label">Company 3 (optional)</div>
+        <input type="text" class="company-input-field" id="co3" placeholder="e.g. Coda" spellcheck="false" autocomplete="off">
+      </div>
+      <select class="compare-focus" id="compare-focus">
+        <option value="">General</option>
+        <option value="competitive_threat">Competitive threat</option>
+        <option value="investment">Investment</option>
+        <option value="sales">Sales intelligence</option>
+      </select>
+      <button class="compare-btn" id="compare-btn">
+        <span id="compare-btn-label">Compare</span>
+      </button>
+    </div>
+
+    <div class="compare-status" id="compare-status">
+      <span class="status-dot"></span>
+      <span id="compare-status-text">Researching...</span>
+    </div>
+
+    <div id="compare-error" class="error-area hidden"></div>
+
+    <div id="compare-columns" class="compare-columns hidden"></div>
+
+    <div id="matrix-section" class="matrix-section hidden">
+      <div class="matrix-heading">Comparison Matrix</div>
+      <div id="matrix-summary" class="matrix-summary"></div>
+      <table class="matrix-table" id="matrix-table">
+        <thead id="matrix-thead"></thead>
+        <tbody id="matrix-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    const compareBtn  = document.getElementById('compare-btn');
+    const compareStatus    = document.getElementById('compare-status');
+    const compareStatusTxt = document.getElementById('compare-status-text');
+    const compareError     = document.getElementById('compare-error');
+    const compareCols      = document.getElementById('compare-columns');
+    const matrixSection    = document.getElementById('matrix-section');
+    const toastContainer   = document.getElementById('toast-container');
+
+    let isComparing = false;
+    const colData = {}; // company -> { analysis, colEl }
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = `<span class="toast-icon">✓</span><span>${msg}</span>`;
+      toastContainer.appendChild(t);
+      requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('visible')));
+      setTimeout(() => { t.classList.add('hiding'); setTimeout(() => t.remove(), 300); }, 2500);
+    }
+
+    function escapeHtml(s) {
+      if (!s) return '';
+      const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+    }
+
+    function buildColumns(companies) {
+      compareCols.innerHTML = '';
+      compareCols.className = `compare-columns cols-${companies.length}`;
+      companies.forEach(company => {
+        const col = document.createElement('div');
+        col.className = 'company-col';
+        col.id = `col-${company.replace(/\s+/g, '-')}`;
+        col.innerHTML = `
+          <div class="company-col-name">${escapeHtml(company)}</div>
+          <div class="col-loading">
+            <div class="btn-spinner" style="border-color:rgba(124,58,237,0.3);border-top-color:#7c3aed;"></div>
+            Researching...
+          </div>`;
+        compareCols.appendChild(col);
+        colData[company] = { colEl: col };
+      });
+      compareCols.classList.remove('hidden');
+    }
+
+    function fillColumn(company, analysis) {
+      const col = colData[company]?.colEl;
+      if (!col) return;
+
+      const ICONS = { move: '↗', risk: '⚠', opportunity: '✦', threat: '⚡' };
+      const topSignals = (analysis.key_signals || []).slice(0, 4);
+
+      let faviconHtml = '';
+      if (analysis.website) {
+        try {
+          const domain = new URL(analysis.website).hostname;
+          faviconHtml = `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" class="company-col-favicon" alt="" onerror="this.style.display='none'">`;
+        } catch {}
+      }
+
+      col.innerHTML = `
+        <div class="company-col-name">${faviconHtml} ${escapeHtml(company)}</div>
+        <div>
+          <div class="col-section-label">Executive Summary</div>
+          <div class="col-exec">${escapeHtml(analysis.executive_summary || '')}</div>
+        </div>
+        <div>
+          <div class="col-section-label">Strategic Interpretation</div>
+          <div class="col-so-what">${escapeHtml(analysis.strategic_so_what || '')}</div>
+        </div>
+        <div>
+          <div class="col-section-label">Key Signals</div>
+          <div class="col-signals">
+            ${topSignals.map(s => `
+              <div class="col-signal" data-type="${s.type}">
+                <span class="col-signal-type">${ICONS[s.type] || ''} ${s.type}</span>${escapeHtml(s.signal)}
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    function renderMatrix(matrix, companies) {
+      const summary = document.getElementById('matrix-summary');
+      const thead   = document.getElementById('matrix-thead');
+      const tbody   = document.getElementById('matrix-tbody');
+
+      summary.innerHTML = `
+        <div class="matrix-stat">
+          <div class="matrix-stat-label">Momentum leader</div>
+          <div class="matrix-stat-value">${escapeHtml(matrix.winner_momentum || 'N/A')}</div>
+        </div>
+        <div class="matrix-stat">
+          <div class="matrix-stat-label">Key differentiator</div>
+          <div class="matrix-stat-value">${escapeHtml(matrix.biggest_differentiator || 'N/A')}</div>
+        </div>
+        <div class="matrix-stat">
+          <div class="matrix-stat-label">Shared risk</div>
+          <div class="matrix-stat-value">${escapeHtml(matrix.shared_risk || 'N/A')}</div>
+        </div>`;
+
+      thead.innerHTML = `<tr>
+        <th>Dimension</th>
+        ${companies.map(c => `<th>${escapeHtml(c)}</th>`).join('')}
+      </tr>`;
+
+      const rows = matrix.rows || [];
+      tbody.innerHTML = rows.map(row => `
+        <tr>
+          <td>${escapeHtml(row.dimension)}</td>
+          ${companies.map(c => {
+            const val = row.values?.[c] || '—';
+            const isM = row.dimension?.toLowerCase().includes('momentum');
+            const cls = isM ? `momentum-${val.toLowerCase()}` : '';
+            return `<td class="${cls}">${escapeHtml(val)}</td>`;
+          }).join('')}
+        </tr>`).join('');
+
+      if (matrix.market_map) {
+        tbody.innerHTML += `<tr><td>Market map</td><td colspan="${companies.length}" style="color:#6b7280;font-style:italic">${escapeHtml(matrix.market_map)}</td></tr>`;
+      }
+
+      matrixSection.classList.remove('hidden');
+    }
+
+    compareBtn.addEventListener('click', runComparison);
+    [document.getElementById('co1'), document.getElementById('co2'), document.getElementById('co3')].forEach(inp => {
+      inp?.addEventListener('keydown', e => { if (e.key === 'Enter') runComparison(); });
+    });
+
+    async function runComparison() {
+      if (isComparing) return;
+      const companies = [
+        document.getElementById('co1').value.trim(),
+        document.getElementById('co2').value.trim(),
+        document.getElementById('co3').value.trim()
+      ].filter(Boolean);
+
+      if (companies.length < 2) {
+        document.getElementById('co1').style.borderColor = companies[0] ? '' : '#fca5a5';
+        document.getElementById('co2').style.borderColor = companies[1] ? '' : '#fca5a5';
+        setTimeout(() => {
+          document.getElementById('co1').style.borderColor = '';
+          document.getElementById('co2').style.borderColor = '';
+        }, 1500);
+        return;
+      }
+
+      isComparing = true;
+      compareBtn.disabled = true;
+      document.getElementById('compare-btn-label').textContent = 'Comparing...';
+      compareError.classList.add('hidden');
+      matrixSection.classList.add('hidden');
+      compareStatus.classList.add('visible');
+      Object.keys(colData).forEach(k => delete colData[k]);
+
+      buildColumns(companies);
+
+      const focus = document.getElementById('compare-focus').value;
+      const url = `/api/compare?companies=${encodeURIComponent(companies.join(','))}${focus ? `&focus=${encodeURIComponent(focus)}` : ''}`;
+
+      // Pre-flight 429 check
+      try {
+        const check = await fetch(url, { method: 'HEAD' });
+        if (check.status === 429) {
+          compareStatusTxt.textContent = 'Rate limit reached';
+          compareError.classList.remove('hidden');
+          compareError.textContent = 'Too many analyses — please wait before running another comparison.';
+          compareStatus.classList.remove('visible');
+          compareBtn.disabled = false;
+          document.getElementById('compare-btn-label').textContent = 'Compare';
+          isComparing = false;
+          return;
+        }
+      } catch {}
+
+      const es = new EventSource(url);
+      es.onmessage = (e) => {
+        const ev = JSON.parse(e.data);
+        if (ev.type === 'status') {
+          compareStatusTxt.textContent = ev.message;
+        } else if (ev.type === 'step' && ev.company) {
+          compareStatusTxt.textContent = `[${ev.company}] ${ev.tool || ev.message || 'Researching...'}`;
+        } else if (ev.type === 'complete') {
+          es.close();
+          compareStatus.classList.remove('visible');
+          compareBtn.disabled = false;
+          document.getElementById('compare-btn-label').textContent = 'Compare';
+          isComparing = false;
+          // Fill in columns
+          (ev.results || []).forEach(r => fillColumn(r.company, r.analysis));
+          // Render matrix
+          if (ev.matrix) renderMatrix(ev.matrix, companies);
+          showToast('Comparison complete');
+        } else if (ev.type === 'error') {
+          es.close();
+          compareStatus.classList.remove('visible');
+          compareError.classList.remove('hidden');
+          compareError.textContent = `Comparison failed: ${ev.message}`;
+          compareBtn.disabled = false;
+          document.getElementById('compare-btn-label').textContent = 'Compare';
+          isComparing = false;
+        }
+      };
+      es.onerror = () => {
+        es.close();
+        compareStatus.classList.remove('visible');
+        compareError.classList.remove('hidden');
+        compareError.textContent = 'Connection lost. Please try again.';
+        compareBtn.disabled = false;
+        document.getElementById('compare-btn-label').textContent = 'Compare';
+        isComparing = false;
+      };
+    }
+
+    // Auto-start if URL has ?companies= param
+    const params = new URLSearchParams(window.location.search);
+    const preset = params.get('companies');
+    if (preset) {
+      const parts = preset.split(',').map(s => s.trim());
+      if (parts[0]) document.getElementById('co1').value = parts[0];
+      if (parts[1]) document.getElementById('co2').value = parts[1];
+      if (parts[2]) document.getElementById('co3').value = parts[2];
+    }
+  </script>
+</body>
+</html>

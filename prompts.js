@@ -118,13 +118,17 @@ RESEARCH FOCUS — SALES INTELLIGENCE: Beyond the standard research agenda, prio
 - Current events or initiatives that create urgency`
 };
 
-export function buildResearchPrompt(companyName, focus = null) {
+export function buildResearchPrompt(companyName, focus = null, userContext = null) {
   let prompt = `Research the company "${companyName}" following your research agenda. Conduct all five phases of research (website scan, recent news, job postings, customer sentiment, synthesis) then output the structured JSON brief.
 
 Start with Phase 1: search for and fetch the company's official website.`;
 
   if (focus && FOCUS_ADDONS[focus]) {
     prompt += FOCUS_ADDONS[focus];
+  }
+
+  if (userContext && userContext.trim()) {
+    prompt += `\n\nREADER CONTEXT: The person receiving this brief has shared: "${userContext.trim()}". Where relevant, tailor the strategic_so_what and signal significance to reflect their specific vantage point — what this means for someone in their position.`;
   }
 
   return prompt;

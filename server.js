@@ -7,7 +7,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { runAgent, runAgentWithPriorContext, handleFollowUp, handleFollowUpStream } from './agent.js';
+import rateLimit from 'express-rate-limit';
+import { runAgent, handleFollowUp, handleFollowUpStream, synthesizeComparison } from './agent.js';
 import { checkCache, saveAnalysis, getAnalysisById, getHistory } from './supabase.js';
 
 const app = express();
@@ -15,6 +16,22 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+const analyzeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many analyses. Please wait before running another.' }
+});
+
+const followupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many follow-up questions. Please wait a moment.' }
+});
 
 // ---------- HTML page routes (must be before express.static) ----------
 // express.static would auto-serve index.html at / otherwise
@@ -26,14 +43,25 @@ app.get('/app', (req, res) => {
   res.sendFile('index.html', { root: './public' });
 });
 
+app.get('/compare', (req, res) => {
+  res.sendFile('compare.html', { root: './public' });
+});
+
 app.get('/view/:id', (req, res) => {
   res.sendFile('index.html', { root: './public' });
 });
 
 app.use(express.static('public', { index: false }));
 
-// In-memory store for analyses when Supabase is not configured
+// In-memory store for analyses when Supabase is not configured — capped at 100 entries (LRU)
 const memoryStore = new Map();
+const MEMORY_STORE_MAX = 100;
+function memorySet(id, val) {
+  if (memoryStore.size >= MEMORY_STORE_MAX) {
+    memoryStore.delete(memoryStore.keys().next().value); // evict oldest
+  }
+  memoryStore.set(id, val);
+}
 
 // Compute what changed between an old and new analysis (for stale cache refreshes)
 function computeDelta(oldAnalysis, newAnalysis) {
@@ -55,8 +83,8 @@ function computeDelta(oldAnalysis, newAnalysis) {
 
 // ---------- SSE streaming analysis endpoint ----------
 // GET /api/analyze/stream?company=Notion&focus=competitive_threat
-app.get('/api/analyze/stream', async (req, res) => {
-  const { company, focus } = req.query;
+app.get('/api/analyze/stream', analyzeLimiter, async (req, res) => {
+  const { company, focus, context: userContext, deep } = req.query;
 
   if (!company || company.trim().length === 0) {
     res.status(400).json({ error: 'Company name is required' });
@@ -117,10 +145,11 @@ app.get('/api/analyze/stream', async (req, res) => {
       const analysisId = saved?.id || `mem_${Date.now()}`;
 
       // Also store in memory for follow-up if Supabase is down
-      memoryStore.set(analysisId, analysis);
+      memorySet(analysisId, analysis);
 
       const totalTokens = tokenStats ? tokenStats.inputTokens + tokenStats.outputTokens : 0;
-      console.log(`[server] Analysis complete for "${company}" (${durationSec}s, ${toolCallCount} calls, ${sourcesCount} sources, ${totalTokens} tokens)`);
+      const cacheHit = tokenStats?.cacheReadTokens > 0;
+      console.log(`[server] Analysis complete for "${company}" (${durationSec}s, ${toolCallCount} calls, ${sourcesCount} sources, ${totalTokens} tokens${cacheHit ? `, ${tokenStats.cacheReadTokens} cache-read` : ''})`);
 
       sendEvent('complete', {
         analysis,
@@ -136,10 +165,15 @@ app.get('/api/analyze/stream', async (req, res) => {
       res.end();
     };
 
+    const agentOptions = {
+      focus: focus || null,
+      userContext: userContext || null,
+      deep: deep === 'true'
+    };
     if (cached?.stale) {
-      await runAgentWithPriorContext(company, cached.data, onStep, onComplete);
+      await runAgent(company, onStep, onComplete, { ...agentOptions, priorAnalysis: cached.data });
     } else {
-      await runAgent(company, onStep, onComplete, focus || null);
+      await runAgent(company, onStep, onComplete, agentOptions);
     }
   } catch (err) {
     console.error(`[server] Analysis failed:`, err.message);
@@ -148,9 +182,60 @@ app.get('/api/analyze/stream', async (req, res) => {
   }
 });
 
+// ---------- Multi-company comparison endpoint ----------
+// GET /api/compare?companies=Notion,Linear&focus=competitive_threat
+app.get('/api/compare', analyzeLimiter, async (req, res) => {
+  const companies = (req.query.companies || '')
+    .split(',').map(c => c.trim()).filter(Boolean).slice(0, 3);
+
+  if (companies.length < 2) {
+    return res.status(400).json({ error: 'Provide at least 2 companies (comma-separated)' });
+  }
+
+  console.log(`[server] Compare requested: ${companies.join(' vs ')}`);
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const sendEvent = (type, data) => res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
+
+  try {
+    const focus = req.query.focus || null;
+    sendEvent('status', { message: `Researching ${companies.join(', ')} in parallel...` });
+
+    // Run all agents in parallel — each streams its steps tagged with company name
+    const results = await Promise.all(companies.map(company =>
+      new Promise((resolve, reject) => {
+        runAgent(
+          company,
+          (step) => sendEvent('step', { company, ...step }),
+          (analysis) => resolve({ company, analysis }),
+          { focus }
+        ).catch(reject);
+      })
+    ));
+
+    sendEvent('status', { message: 'Synthesizing comparison matrix...' });
+    const matrix = await synthesizeComparison(results);
+
+    sendEvent('complete', {
+      results: results.map(r => ({ company: r.company, analysis: r.analysis })),
+      matrix
+    });
+    res.end();
+  } catch (err) {
+    console.error('[server] Compare failed:', err.message);
+    sendEvent('error', { message: err.message });
+    res.end();
+  }
+});
+
 // ---------- Follow-up Q&A endpoint (standard, non-streaming) ----------
 // POST /api/followup
-app.post('/api/followup', async (req, res) => {
+app.post('/api/followup', followupLimiter, async (req, res) => {
   const { analysisId, question, history } = req.body;
 
   if (!question) {
@@ -188,7 +273,7 @@ app.post('/api/followup', async (req, res) => {
 
 // ---------- Streaming follow-up Q&A endpoint ----------
 // POST /api/followup/stream — returns SSE token stream
-app.post('/api/followup/stream', async (req, res) => {
+app.post('/api/followup/stream', followupLimiter, async (req, res) => {
   const { analysisId, question, history } = req.body;
 
   if (!question) {

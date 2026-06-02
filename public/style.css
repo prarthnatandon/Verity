@@ -683,6 +683,8 @@ body {
   background: linear-gradient(to right, rgba(124,58,237,0.04), transparent 80%);
   border-radius: 0 6px 6px 0;
   margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .meta-row {
@@ -1034,37 +1036,23 @@ body {
   font-style: italic;
 }
 
-/* Strategic so what */
+/* Strategic so what — prominent, position 2 */
 .so-what-block {
   background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
   border: 1px solid #ede9fe;
-  border-left: 2px solid #7c3aed;
+  border-left: 3px solid #7c3aed;
   border-radius: 10px;
-  padding: 24px 28px;
-  position: relative;
-  margin-top: 8px;
-}
-
-.so-what-label {
-  position: absolute;
-  top: -9px;
-  left: 18px;
-  background: #ffffff;
-  padding: 0 8px;
-  font-size: 10px;
-  font-family: 'Geist Mono', monospace;
-  font-weight: 600;
-  color: #7c3aed;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  padding: 28px 32px;
+  margin-top: 4px;
 }
 
 .so-what-text {
-  font-size: 15px;
+  font-size: 17px;
   color: #1f2937;
-  line-height: 1.8;
+  line-height: 1.85;
   font-family: 'Geist', sans-serif;
   font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 /* Sources */
@@ -1542,6 +1530,340 @@ body {
   color: #9ca3af;
   font-family: 'Geist Mono', monospace;
   flex-shrink: 0;
+}
+
+/* ---- Company favicon in exec summary ---- */
+.exec-summary-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.company-favicon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  margin-top: 14px;
+  object-fit: contain;
+  background: #f9fafb;
+}
+
+/* ---- Signal type gradient tints ---- */
+.signal-card[data-type="threat"] {
+  border-left-color: #dc2626;
+  background: linear-gradient(to right, rgba(220,38,38,0.04), #fafafa 50%);
+}
+
+.signal-card[data-type="risk"] {
+  background: linear-gradient(to right, rgba(220,38,38,0.02), #fafafa 50%);
+}
+
+.signal-card[data-type="opportunity"] {
+  border-left-color: #16a34a;
+  background: linear-gradient(to right, rgba(22,163,74,0.04), #fafafa 50%);
+}
+
+.signal-card[data-type="move"] {
+  background: linear-gradient(to right, rgba(124,58,237,0.03), #fafafa 50%);
+}
+
+.signal-card.confidence-high {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(124,58,237,0.07);
+}
+
+/* Signal type badge — larger + icon prefix */
+.signal-type {
+  font-size: 11px;
+  padding: 3px 9px;
+}
+
+/* Inline "→ Ask" button on signal cards */
+.signal-ask-btn {
+  opacity: 0;
+  border: none;
+  background: none;
+  color: #a78bfa;
+  font-size: 11px;
+  font-family: 'Geist Mono', monospace;
+  cursor: pointer;
+  padding: 2px 0;
+  margin-top: 6px;
+  transition: opacity 0.15s, color 0.15s;
+  display: block;
+  text-align: right;
+  width: 100%;
+}
+
+.signal-ask-btn:hover { color: #7c3aed; }
+
+.signal-card:hover .signal-ask-btn { opacity: 1; }
+
+/* ---- Sentiment score bar ---- */
+.sentiment-score-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.sentiment-score-label {
+  font-size: 11px;
+  font-family: 'Geist Mono', monospace;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.sentiment-score-bar {
+  flex: 1;
+  height: 4px;
+  background: #f3f4f6;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sentiment-score-fill {
+  height: 100%;
+  background: linear-gradient(to right, #4ade80, #16a34a);
+  border-radius: 2px;
+  transition: width 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 0;
+}
+
+.sentiment-score-pct {
+  font-size: 11px;
+  font-family: 'Geist Mono', monospace;
+  color: #16a34a;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Sources collapsible ---- */
+.sources-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.sources-toggle:hover .section-label { color: #7c3aed; }
+
+.sources-chevron {
+  color: #9ca3af;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sources-toggle[aria-expanded="true"] .sources-chevron {
+  transform: rotate(180deg);
+}
+
+.sources-collapsed {
+  display: none;
+  margin-top: 14px;
+}
+
+.sources-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ---- History search input ---- */
+.history-search {
+  width: 100%;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: 'Geist', sans-serif;
+  font-size: 12px;
+  color: #374151;
+  background: #ffffff;
+  outline: none;
+  margin-bottom: 8px;
+  transition: border-color 0.15s;
+}
+
+.history-search:focus {
+  border-color: #a78bfa;
+}
+
+.history-search::placeholder { color: #d1d5db; }
+
+/* History item left border by confidence */
+.history-item {
+  border-left: 2px solid transparent;
+  padding-left: 6px;
+}
+
+.history-item[data-conf="high"]   { border-left-color: #10b981; }
+.history-item[data-conf="medium"] { border-left-color: #f59e0b; }
+.history-item[data-conf="low"]    { border-left-color: #d1d5db; }
+
+/* History time group label */
+.history-group-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d1d5db;
+  font-family: 'Geist Mono', monospace;
+  padding: 10px 8px 4px;
+}
+
+/* ---- Signal filter bar ---- */
+.signal-filter-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  align-items: center;
+}
+
+.signal-filter {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.signal-filter:hover {
+  border-color: #a78bfa;
+  color: #7c3aed;
+  background: #faf5ff;
+  transform: translateY(-1px);
+}
+
+.signal-filter.active {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #ffffff;
+}
+
+.signal-filter.conf-filter.active {
+  background: #1f2937;
+  border-color: #1f2937;
+  color: #ffffff;
+}
+
+/* ---- Reasoning expand button ---- */
+.reasoning-expand {
+  display: inline;
+  border: none;
+  background: none;
+  color: #a78bfa;
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  text-decoration: underline;
+  transition: color 0.15s;
+}
+.reasoning-expand:hover { color: #7c3aed; }
+
+/* ---- Deep mode toggle ---- */
+.deep-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+  transition: color 0.15s;
+}
+.deep-toggle:hover { color: #7c3aed; }
+.deep-toggle input[type="checkbox"] { accent-color: #7c3aed; }
+
+/* Deep synthesis badge on the SO WHAT block */
+.deep-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #7c3aed;
+  background: #ede9fe;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+/* ---- Your context toggle & textarea ---- */
+.context-wrapper {
+  margin-top: 6px;
+}
+
+.context-toggle {
+  background: none;
+  border: none;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: #a78bfa;
+  cursor: pointer;
+  padding: 2px 0;
+  transition: color 0.15s;
+}
+.context-toggle:hover { color: #7c3aed; }
+
+.user-context {
+  display: none;
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-family: 'Geist', sans-serif;
+  font-size: 12px;
+  color: #374151;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
+  background: #ffffff;
+}
+.user-context:focus { border-color: #a78bfa; }
+.user-context.visible { display: block; }
+
+/* ---- Compare entry in sidebar ---- */
+.compare-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0 6px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: #d1d5db;
+}
+
+.compare-link {
+  color: #a78bfa;
+  text-decoration: none;
+  font-size: 11px;
+  font-family: 'Geist Mono', monospace;
+  transition: color 0.15s;
+}
+.compare-link:hover { color: #7c3aed; }
+
+/* ---- Slack copy button variant ---- */
+.action-btn.slack-btn {
+  background: #f9fafb;
 }
 
 /* ---- Utility ---- */
